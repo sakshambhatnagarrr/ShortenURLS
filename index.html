@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shortify</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #f4f6fb;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .card {
+      background: #fff;
+      width: 100%;
+      max-width: 520px;
+      padding: 32px;
+      border-radius: 14px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+    }
+    h1 { margin: 0 0 4px; font-size: 28px; }
+    p.sub { margin: 0 0 24px; color: #667; font-size: 14px; }
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+      border: 1px solid #ccd;
+      border-radius: 8px;
+    }
+    button {
+      margin-top: 12px;
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      background: #ff9900;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    #out { margin-top: 20px; word-break: break-all; font-size: 15px; }
+    .ok { background: #eef9f0; border: 1px solid #b8e2c0; padding: 12px; border-radius: 8px; }
+    .err { background: #fdeeee; border: 1px solid #f0b9b9; padding: 12px; border-radius: 8px; color: #a00; }
+    .copy { background: #232f3e; margin-top: 10px; padding: 8px; font-size: 13px; }
+    a { color: #0b5fff; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Shortify</h1>
+    <p class="sub">Serverless URL shortener on AWS Lambda, API Gateway and DynamoDB</p>
+
+    <input id="url" type="text" placeholder="Paste a long URL (https://...)">
+    <button id="btn" onclick="shorten()">Shorten</button>
+
+    <div id="out"></div>
+  </div>
+
+  <script>
+    // Replace with your API Gateway Invoke URL (no trailing slash)
+    const API = "czh4ruqxt4.execute-api.ap-southeast-2.amazonaws.com";
+
+    async function shorten() {
+      const out = document.getElementById("out");
+      const btn = document.getElementById("btn");
+      const url = document.getElementById("url").value.trim();
+
+      out.innerHTML = "";
+      btn.disabled = true;
+      btn.textContent = "Shortening...";
+
+      try {
+        const res = await fetch(API + "/shorten", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: url })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          out.innerHTML =
+            '<div class="ok">Your short link:<br>' +
+            '<a id="short" href="' + data.short_url + '" target="_blank" rel="noopener">' +
+            data.short_url + '</a>' +
+            '<button class="copy" onclick="copyLink()">Copy link</button></div>';
+        } else {
+          out.innerHTML = '<div class="err">' + (data.error || "Something went wrong") + '</div>';
+        }
+      } catch (e) {
+        out.innerHTML = '<div class="err">Could not reach the API. Check the API URL and CORS settings.</div>';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Shorten";
+      }
+    }
+
+    function copyLink() {
+      const link = document.getElementById("short").href;
+      navigator.clipboard.writeText(link);
+      document.querySelector(".copy").textContent = "Copied!";
+    }
+
+    document.getElementById("url").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") shorten();
+    });
+  </script>
+</body>
+</html>
